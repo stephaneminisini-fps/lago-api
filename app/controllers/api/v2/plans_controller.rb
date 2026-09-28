@@ -6,21 +6,18 @@ module Api
       include Api::RequiresProductCatalog
 
       def index
-        result = CatalogPlansQuery.call(
-          organization: current_organization,
-          pagination: {
-            page: params[:page],
-            limit: params[:per_page] || PER_PAGE
-          }
-        )
+        cursor = cursor_pagination(CatalogPlan)
+        result = index_query(pagination: cursor)
 
         if result.success?
+          page = ::CursorPagination::Page.new(records: result.catalog_plans, cursor:)
+
           render(
             json: ::CollectionSerializer.new(
-              result.catalog_plans,
+              page.records,
               ::V2::CatalogPlanSerializer,
               collection_name: "plans",
-              meta: pagination_metadata(result.catalog_plans)
+              meta: cursor_meta(page) { index_query(pagination: nil).catalog_plans }
             )
           )
         else
@@ -57,6 +54,10 @@ module Api
       end
 
       private
+
+      def index_query(pagination:)
+        ::CatalogPlansQuery.call(organization: current_organization, pagination:)
+      end
 
       def input_params
         params.require(:plan).permit(:name, :code, :description, :invoice_display_name, :currency)

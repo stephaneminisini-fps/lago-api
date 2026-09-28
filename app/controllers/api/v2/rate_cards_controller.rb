@@ -55,29 +55,18 @@ module Api
       end
 
       def index
-        result = ::RateCardsQuery.call(
-          organization: current_organization,
-          search_term: params[:search_term],
-          pagination: {
-            page: params[:page],
-            limit: params[:per_page] || PER_PAGE
-          },
-          filters: {
-            product_ids: Array(params[:product_id]).presence,
-            product_filter_ids: Array(params[:product_filter_id]).presence,
-            code: params[:code],
-            product_code: params[:product_code],
-            product_filter_code: params[:product_filter_code]
-          }
-        )
+        cursor = cursor_pagination(RateCard)
+        result = index_query(pagination: cursor)
 
         if result.success?
+          page = ::CursorPagination::Page.new(records: result.rate_cards.includes(:product, :product_filter, :rates), cursor:)
+
           render(
             json: ::CollectionSerializer.new(
-              result.rate_cards.includes(:product, :product_filter, :rates),
+              page.records,
               ::V2::RateCardSerializer,
               collection_name: "rate_cards",
-              meta: pagination_metadata(result.rate_cards)
+              meta: cursor_meta(page) { index_query(pagination: nil).rate_cards }
             )
           )
         else
@@ -86,6 +75,21 @@ module Api
       end
 
       private
+
+      def index_query(pagination:)
+        ::RateCardsQuery.call(
+          organization: current_organization,
+          search_term: params[:search_term],
+          pagination:,
+          filters: {
+            product_ids: Array(params[:product_id]).presence,
+            product_filter_ids: Array(params[:product_filter_id]).presence,
+            code: params[:code],
+            product_code: params[:product_code],
+            product_filter_code: params[:product_filter_code]
+          }
+        )
+      end
 
       def rate_card
         @rate_card ||= current_organization.rate_cards.find_by(code: params[:code])

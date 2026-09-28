@@ -48,38 +48,24 @@ module Api
       end
 
       def index
-        filters = params.permit(:plan_code, :external_customer_id, :external_id, :has_rate_overrides, billing_entity_ids: [])
-        # Accept both ?status=pending and ?status[]=pending — strong params
-        # would silently drop the scalar form and hand back active contracts
-        # to a caller who believes they filtered.
-        statuses = params[:status].is_a?(Array) ? params[:status] : [params[:status]]
-        filters[:status] = statuses.compact_blank.presence || ["active"]
-
-        result = ::ContractsQuery.call(
-          organization: current_organization,
-          pagination: {
-            page: params[:page],
-            limit: params[:per_page] || PER_PAGE
-          },
-          filters:,
-          search_term: params[:search_term]
-        )
+        cursor = cursor_pagination(Contract)
+        result = index_query(pagination: cursor)
 
         if result.success?
-          contracts = result.contracts.includes(:catalog_plan, :customer)
+          page = ::CursorPagination::Page.new(records: result.contracts.includes(:catalog_plan, :customer), cursor:)
 
           # One grouped query instead of one COUNT per row in the serializer.
           applied_rate_cards_counts = ContractRateCard.current_and_scheduled
-            .where(contract_id: contracts.map(&:id))
+            .where(contract_id: page.records.map(&:id))
             .group(:contract_id)
             .count
 
           render(
             json: ::CollectionSerializer.new(
-              contracts,
+              page.records,
               ::V2::ContractSerializer,
               collection_name: "contracts",
-              meta: pagination_metadata(contracts),
+              meta: cursor_meta(page) { index_query(pagination: nil).contracts },
               applied_rate_cards_counts:
             )
           )
@@ -113,6 +99,25 @@ module Api
       end
 
       private
+
+      def index_query(pagination:)
+        ::ContractsQuery.call(
+          organization: current_organization,
+          pagination:,
+          filters: index_filters,
+          search_term: params[:search_term]
+        )
+      end
+
+      def index_filters
+        filters = params.permit(:plan_code, :external_customer_id, :external_id, :has_rate_overrides, billing_entity_ids: [])
+        # Accept both ?status=pending and ?status[]=pending — strong params
+        # would silently drop the scalar form and hand back active contracts
+        # to a caller who believes they filtered.
+        statuses = params[:status].is_a?(Array) ? params[:status] : [params[:status]]
+        filters[:status] = statuses.compact_blank.presence || ["active"]
+        filters
+      end
 
       # The column is a PostgreSQL enum: an unknown value would be a
       # database-level cast error, so anything else falls back to active.

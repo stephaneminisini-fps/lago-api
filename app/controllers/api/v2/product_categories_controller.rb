@@ -49,23 +49,19 @@ module Api
       end
 
       def index
-        result = ::ProductCategoriesQuery.call(
-          organization: current_organization,
-          search_term: params[:search_term],
-          pagination: {
-            page: params[:page],
-            limit: params[:per_page] || PER_PAGE
-          }
-        )
+        cursor = cursor_pagination(ProductCategory)
+        result = index_query(pagination: cursor)
 
         if result.success?
+          # Preloaded so products_count reads the loaded association.
+          page = ::CursorPagination::Page.new(records: result.product_categories.includes(:products), cursor:)
+
           render(
             json: ::CollectionSerializer.new(
-              # Preloaded so products_count reads the loaded association.
-              result.product_categories.includes(:products),
+              page.records,
               ::V2::ProductCategorySerializer,
               collection_name: "product_categories",
-              meta: pagination_metadata(result.product_categories)
+              meta: cursor_meta(page) { index_query(pagination: nil).product_categories }
             )
           )
         else
@@ -74,6 +70,14 @@ module Api
       end
 
       private
+
+      def index_query(pagination:)
+        ::ProductCategoriesQuery.call(
+          organization: current_organization,
+          search_term: params[:search_term],
+          pagination:
+        )
+      end
 
       def input_params
         params.require(:product_category).permit(
