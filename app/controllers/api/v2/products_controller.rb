@@ -82,28 +82,19 @@ module Api
           return validation_errors(errors: {product_type: ["value_is_invalid"]})
         end
 
-        result = ::ProductsQuery.call(
-          organization: current_organization,
-          search_term: params[:search_term],
-          pagination: {
-            page: params[:page],
-            limit: params[:per_page] || PER_PAGE
-          },
-          filters: {
-            product_category_ids: index_product_categories.map(&:id).presence,
-            without_product_category: ActiveModel::Type::Boolean.new.cast(params[:without_product_category]),
-            product_type: params[:product_type]
-          }
-        )
+        cursor = cursor_pagination(Product)
+        result = index_query(pagination: cursor)
 
         if result.success?
+          # Preloaded so filters_count reads the loaded association.
+          page = ::CursorPagination::Page.new(records: result.products.includes(:filters), cursor:)
+
           render(
             json: ::CollectionSerializer.new(
-              # Preloaded so filters_count reads the loaded association.
-              result.products.includes(:filters),
+              page.records,
               ::V2::ProductSerializer,
               collection_name: "products",
-              meta: pagination_metadata(result.products)
+              meta: cursor_meta(page) { index_query(pagination: nil).products }
             )
           )
         else
@@ -112,6 +103,19 @@ module Api
       end
 
       private
+
+      def index_query(pagination:)
+        ::ProductsQuery.call(
+          organization: current_organization,
+          search_term: params[:search_term],
+          pagination:,
+          filters: {
+            product_category_ids: index_product_categories.map(&:id).presence,
+            without_product_category: ActiveModel::Type::Boolean.new.cast(params[:without_product_category]),
+            product_type: params[:product_type]
+          }
+        )
+      end
 
       def product_category
         @product_category ||= current_organization.product_categories.find_by(code: input_params[:product_category_code])
