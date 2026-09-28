@@ -63,6 +63,14 @@ RSpec.describe Api::V2::PlanRateCardsController do
 
       expect(response).to have_http_status(:success)
       expect(json[:applied_rate_cards].map { |i| i[:lago_id] }).to eq([plan_rate_card.id])
+      expect(json[:meta]).to eq(next_cursor: nil, prev_cursor: nil)
+    end
+
+    it_behaves_like "a cursor paginated v2 endpoint", collection: :applied_rate_cards, model: PlanRateCard do
+      let(:paginated_path) { "/api/v2/plans/#{catalog_plan.code}/applied_rate_cards" }
+      let(:create_paginated_record) { ->(created_at) { create(:plan_rate_card, organization:, catalog_plan:, created_at:) } }
+      # Rendered under the same collection name, from another table.
+      let(:other_table_record) { create(:contract_rate_card, organization:) }
     end
 
     context "when the plan does not exist" do

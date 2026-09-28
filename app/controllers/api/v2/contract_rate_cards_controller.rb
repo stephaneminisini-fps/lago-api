@@ -56,22 +56,18 @@ module Api
       def index
         return not_found_error(resource: "contract") unless find_contract
 
-        result = ::ContractRateCardsQuery.call(
-          organization: current_organization,
-          pagination: {
-            page: params[:page],
-            limit: params[:per_page] || PER_PAGE
-          },
-          filters: {contract_id: find_contract.id}
-        )
+        cursor = cursor_pagination(ContractRateCard)
+        result = index_query(pagination: cursor)
 
         if result.success?
+          page = ::CursorPagination::Page.new(records: result.contract_rate_cards.includes(:contract, :rate_card, :rate_phases), cursor:)
+
           render(
             json: ::CollectionSerializer.new(
-              result.contract_rate_cards.includes(:contract, :rate_card, :rate_phases),
+              page.records,
               ::V2::ContractAppliedRateCardSerializer,
               collection_name: "applied_rate_cards",
-              meta: pagination_metadata(result.contract_rate_cards)
+              meta: cursor_meta(page) { index_query(pagination: nil).contract_rate_cards }
             )
           )
         else
@@ -80,6 +76,14 @@ module Api
       end
 
       private
+
+      def index_query(pagination:)
+        ::ContractRateCardsQuery.call(
+          organization: current_organization,
+          pagination:,
+          filters: {contract_id: find_contract.id}
+        )
+      end
 
       def find_contract
         return @find_contract if defined?(@find_contract)

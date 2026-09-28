@@ -100,4 +100,51 @@ RSpec.describe "Cursor-paginated queries" do # rubocop:disable RSpec/DescribeCla
       expect(contracts.to_sql).to end_with(order_and_limit("contracts"))
     end
   end
+
+  context "with ProductFiltersQuery" do
+    subject(:product_filters) do
+      ProductFiltersQuery.call(
+        organization:,
+        search_term: "a",
+        pagination: CursorPagination::Cursor.new(table: "product_filters"),
+        filters: {product_id: SecureRandom.uuid, product_category_ids: [SecureRandom.uuid], without_product_category: true}
+      ).product_filters
+    end
+
+    # The default scope of the model orders ascending: the keyset must replace it.
+    it "ends with the keyset ordering" do
+      expect(product_filters.to_sql).to include(%(ORDER BY "product_filters"."created_at" DESC, "product_filters"."id" DESC LIMIT 21))
+      expect(product_filters.to_sql).not_to include("ASC")
+    end
+  end
+
+  context "with PlanRateCardsQuery" do
+    subject(:plan_rate_cards) do
+      PlanRateCardsQuery.call(
+        organization:,
+        search_term: "a",
+        pagination: CursorPagination::Cursor.new(table: "plan_rate_cards"),
+        filters: {plan_id: SecureRandom.uuid, product_category_ids: [SecureRandom.uuid], has_rate_overrides: true}
+      ).plan_rate_cards
+    end
+
+    it "ends with the keyset ordering" do
+      expect(plan_rate_cards.to_sql).to end_with(order_and_limit("plan_rate_cards"))
+    end
+  end
+
+  context "with ContractRateCardsQuery" do
+    subject(:contract_rate_cards) do
+      ContractRateCardsQuery.call(
+        organization:,
+        search_term: "a",
+        pagination: CursorPagination::Cursor.new(table: "contract_rate_cards"),
+        filters: {contract_id: SecureRandom.uuid, product_category_ids: [SecureRandom.uuid], has_rate_overrides: true}
+      ).contract_rate_cards
+    end
+
+    it "ends with the keyset ordering" do
+      expect(contract_rate_cards.to_sql).to end_with(order_and_limit("contract_rate_cards"))
+    end
+  end
 end

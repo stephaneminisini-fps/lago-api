@@ -10,23 +10,18 @@ module Api
         before_action :find_product_filter, only: %i[show update destroy]
 
         def index
-          result = ::ProductFiltersQuery.call(
-            organization: current_organization,
-            search_term: params[:search_term],
-            pagination: {
-              page: params[:page],
-              limit: params[:per_page] || PER_PAGE
-            },
-            filters: {product_id: product.id}
-          )
+          cursor = cursor_pagination(ProductFilter)
+          result = index_query(pagination: cursor)
 
           if result.success?
+            page = ::CursorPagination::Page.new(records: result.product_filters, cursor:)
+
             render(
               json: ::CollectionSerializer.new(
-                result.product_filters,
+                page.records,
                 ::V2::ProductFilterSerializer,
                 collection_name: "filters",
-                meta: pagination_metadata(result.product_filters)
+                meta: cursor_meta(page) { index_query(pagination: nil).product_filters }
               )
             )
           else
@@ -78,6 +73,15 @@ module Api
         private
 
         attr_reader :product, :product_filter
+
+        def index_query(pagination:)
+          ::ProductFiltersQuery.call(
+            organization: current_organization,
+            search_term: params[:search_term],
+            pagination:,
+            filters: {product_id: product.id}
+          )
+        end
 
         def find_product
           @product = current_organization.products.find_by(code: params[:product_code])

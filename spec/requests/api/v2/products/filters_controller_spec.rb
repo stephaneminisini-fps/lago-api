@@ -185,7 +185,12 @@ RSpec.describe Api::V2::Products::FiltersController do
 
       expect(response).to have_http_status(:success)
       expect(json[:filters].count).to eq(1)
-      expect(json[:meta][:total_count]).to eq(1)
+      expect(json[:meta]).to eq(next_cursor: nil, prev_cursor: nil)
+    end
+
+    it_behaves_like "a cursor paginated v2 endpoint", collection: :filters, model: ProductFilter do
+      let(:paginated_path) { "/api/v2/products/#{product.code}/filters" }
+      let(:create_paginated_record) { ->(created_at) { create(:product_filter, organization:, product:, created_at:) } }
     end
 
     context "with a search term" do

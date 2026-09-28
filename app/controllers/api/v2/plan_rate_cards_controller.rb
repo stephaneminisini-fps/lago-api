@@ -54,22 +54,18 @@ module Api
       def index
         return not_found_error(resource: "plan") unless find_catalog_plan
 
-        result = ::PlanRateCardsQuery.call(
-          organization: current_organization,
-          pagination: {
-            page: params[:page],
-            limit: params[:per_page] || PER_PAGE
-          },
-          filters: {plan_code: params[:plan_code]}
-        )
+        cursor = cursor_pagination(PlanRateCard)
+        result = index_query(pagination: cursor)
 
         if result.success?
+          page = ::CursorPagination::Page.new(records: result.plan_rate_cards.includes(:catalog_plan, :rate_card, :rate_phases), cursor:)
+
           render(
             json: ::CollectionSerializer.new(
-              result.plan_rate_cards.includes(:catalog_plan, :rate_card, :rate_phases),
+              page.records,
               ::V2::PlanRateCardSerializer,
               collection_name: "applied_rate_cards",
-              meta: pagination_metadata(result.plan_rate_cards)
+              meta: cursor_meta(page) { index_query(pagination: nil).plan_rate_cards }
             )
           )
         else
@@ -79,8 +75,18 @@ module Api
 
       private
 
+      def index_query(pagination:)
+        ::PlanRateCardsQuery.call(
+          organization: current_organization,
+          pagination:,
+          filters: {plan_id: find_catalog_plan.id}
+        )
+      end
+
       def find_catalog_plan
-        current_organization.catalog_plans.find_by(code: params[:plan_code])
+        return @find_catalog_plan if defined?(@find_catalog_plan)
+
+        @find_catalog_plan = current_organization.catalog_plans.find_by(code: params[:plan_code])
       end
 
       def find_plan_rate_card
