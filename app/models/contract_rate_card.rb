@@ -96,6 +96,7 @@ end
 # Indexes
 #
 #  index_active_contract_rate_cards_on_contract_and_card  (contract_id,rate_card_id) UNIQUE WHERE ((deleted_at IS NULL) AND (ended_date IS NULL))
+#  index_contract_rate_cards_by_cursor                    (contract_id,created_at DESC,id DESC) WHERE (deleted_at IS NULL)
 #  index_contract_rate_cards_on_billing_clock             (next_billing_at,ended_date) WHERE (deleted_at IS NULL)
 #  index_contract_rate_cards_on_contract_id               (contract_id)
 #  index_contract_rate_cards_on_deleted_at                (deleted_at)
