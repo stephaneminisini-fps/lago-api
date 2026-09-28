@@ -169,6 +169,22 @@ RSpec.describe Api::V2::RateCards::RatesController do
       expect(response).to have_http_status(:success)
       expect(json[:rates].map { it[:lago_id] }).to eq([rate.id])
     end
+
+    context "with more rates than a default page" do
+      # Scheduled one after the other, since a rate must start after the active one.
+      let(:scheduled_rates) do
+        (1..25).map { |days| create(:rate_card_rate, organization:, rate_card:, effective_from: rate.effective_from + days.days) }
+      end
+
+      before { scheduled_rates }
+
+      it "returns every rate, latest effective first, without pagination metadata" do
+        subject
+
+        expect(json[:rates].map { it[:lago_id] }).to eq([*scheduled_rates.reverse.map(&:id), rate.id])
+        expect(json).not_to have_key(:meta)
+      end
+    end
   end
 
   describe "DELETE /api/v2/rate_cards/:rate_card_id/rates/:code" do
