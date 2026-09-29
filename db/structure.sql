@@ -3583,7 +3583,7 @@ CREATE TABLE public.organizations (
     document_numbering integer DEFAULT 0 NOT NULL,
     document_number_prefix character varying,
     eu_tax_management boolean DEFAULT false,
-    premium_integrations character varying[] DEFAULT '{}'::character varying[] NOT NULL,
+    premium_integrations character varying[] DEFAULT '{beta_payment_authorization,netsuite,okta,entra_id,avalara,xero,progressive_billing,lifetime_usage,hubspot,auto_dunning,revenue_analytics,salesforce,api_permissions,revenue_share,remove_branding_watermark,manual_payments,from_email,issue_receipts,preview,multi_entities_pro,multi_entities_enterprise,analytics_dashboards,forecasted_usage,projected_usage,custom_roles,events_targeting_wallets,security_logs,granular_lifetime_usage,order_forms,revenue_recognition}'::character varying[] NOT NULL,
     custom_aggregation boolean DEFAULT false,
     finalize_zero_amount_invoice boolean DEFAULT true NOT NULL,
     clickhouse_events_store boolean DEFAULT false NOT NULL,
@@ -14920,6 +14920,7 @@ ALTER TABLE ONLY public.membership_roles
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260928120000'),
 ('20260905223042'),
 ('20260905223041'),
 ('20260904173416'),
