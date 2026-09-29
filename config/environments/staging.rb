@@ -45,8 +45,6 @@ Rails.application.configure do
 
   config.active_record.dump_schema_after_migration = false
 
-  config.license_url = "http://license-staging-web.default.svc.cluster.local"
-
   if ENV["LAGO_MEMCACHE_SERVERS"].present?
     config.cache_store = :mem_cache_store, ENV["LAGO_MEMCACHE_SERVERS"].split(",")
 
