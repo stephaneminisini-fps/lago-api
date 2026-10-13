@@ -8,7 +8,8 @@ RSpec.describe Organization do
       name: "PiedPiper",
       email: "foo@bar.com",
       country: "FR",
-      invoice_footer: "this is an invoice footer"
+      invoice_footer: "this is an invoice footer",
+      premium_integrations: []
     )
   end
 
@@ -330,6 +331,22 @@ RSpec.describe Organization do
       organization.update!(premium_integrations: ["progressive_billing"])
       expect(described_class.with_okta_support).to be_empty
       expect(described_class.with_progressive_billing_support).to eq([organization])
+    end
+  end
+
+  describe "premium_integrations default" do
+    it "enables every premium integration on new organizations" do
+      organization = described_class.create!(name: "New org")
+
+      expect(organization.reload.premium_integrations).to match_array(described_class::PREMIUM_INTEGRATIONS)
+    end
+
+    it "makes every premium feature available once the license is verified", :premium do
+      organization = described_class.create!(name: "New org")
+
+      described_class::PREMIUM_INTEGRATIONS.each do |integration|
+        expect(organization.public_send("#{integration}_enabled?")).to be(true)
+      end
     end
   end
 

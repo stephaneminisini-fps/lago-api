@@ -59,7 +59,6 @@ Rails.application.configure do
   config.hosts << "api.lago.dev"
   config.hosts << "api"
 
-  config.license_url = ENV.fetch("LAGO_LICENSE_URL", "http://license:3000")
   config.lago_front_url = ENV["LAGO_FRONT_URL"].presence || "http://localhost:3000"
   config.api_key_cache_ttl = 10.seconds
 

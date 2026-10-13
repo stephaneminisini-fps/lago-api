@@ -3,63 +3,23 @@
 require "rails_helper"
 
 RSpec.describe LagoUtils::License do
-  subject(:license) { described_class.new(url) }
+  subject(:license) { described_class.new }
 
-  let(:url) { "https://license.lago" }
-
-  before do
-    ENV["LAGO_LICENSE"] = "test-license"
+  it "is not premium before verification" do
+    expect(license).not_to be_premium
   end
 
   describe "#verify" do
-    context "when license is valid" do
-      let(:response) do
-        {
-          "valid" => true
-        }.to_json
-      end
+    it "sets premium to true without a license key" do
+      license.verify
 
-      before do
-        stub_request(:get, "#{url}/verify/test-license")
-          .to_return(body: response, status: 200)
-      end
-
-      it "sets premium to true" do
-        license.verify
-
-        expect(license).to be_premium
-      end
+      expect(license).to be_premium
     end
 
-    context "when license is not present" do
-      before do
-        ENV["LAGO_LICENSE"] = nil
-      end
+    it "does not call a remote license server" do
+      license.verify
 
-      it "keeps premium to false" do
-        license.verify
-
-        expect(license).not_to be_premium
-      end
-    end
-
-    context "when license is invalid" do
-      let(:response) do
-        {
-          "valid" => false
-        }.to_json
-      end
-
-      before do
-        stub_request(:get, "#{url}/verify/test-license")
-          .to_return(body: response, status: 200)
-      end
-
-      it "keeps premium to false" do
-        license.verify
-
-        expect(license).not_to be_premium
-      end
+      expect(a_request(:any, //)).not_to have_been_made
     end
   end
 end

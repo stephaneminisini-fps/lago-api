@@ -42,7 +42,6 @@ Rails.application.configure do
   config.active_record.error_on_ignored_order = true
 
   config.active_job.queue_adapter = :test
-  config.license_url = "http://license.lago"
 
   Dotenv.load
 

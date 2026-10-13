@@ -10,6 +10,7 @@ FactoryBot.define do
     sequence(:slug) { |n| "test-org-#{n}" }
     default_currency { "USD" }
     audit_logs_period { nil }
+    premium_integrations { [] }
 
     email { Faker::Internet.email }
     email_settings { ["invoice.finalized", "credit_note.created"] }

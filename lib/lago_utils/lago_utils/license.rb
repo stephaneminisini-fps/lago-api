@@ -2,18 +2,13 @@
 
 module LagoUtils
   class License
-    def initialize(url)
-      @url = url
+    def initialize
       @premium = false
     end
 
+    # Premium features are unlocked unconditionally; no remote license check is performed.
     def verify
-      return if ENV["LAGO_LICENSE"].blank?
-
-      http_client = LagoHttpClient::Client.new("#{url}/verify/#{ENV["LAGO_LICENSE"]}")
-      response = http_client.get
-
-      @premium = response["valid"]
+      @premium = true
     end
 
     def premium?
@@ -22,6 +17,6 @@ module LagoUtils
 
     private
 
-    attr_reader :url, :premium
+    attr_reader :premium
   end
 end
